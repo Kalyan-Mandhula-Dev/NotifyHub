@@ -1,34 +1,26 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-package com.notifyhub.userservice.exception;
+package com.notifyhub.authservice.exception;
 
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-/**
- *
- * @author Dell
- */
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(TenantAlreadyExistsException.class)
-    public ResponseEntity<Map<String, Object>> handleTenantAlreadyExists(TenantAlreadyExistsException e) {
+    @ExceptionHandler(EmailAlreadyExistsException.class)
+    public ResponseEntity<Map<String, Object>> handleEmailAlreadyExists(EmailAlreadyExistsException e) {
         return buildError(HttpStatus.CONFLICT, e.getMessage());
     }
 
-    @ExceptionHandler(TenantNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleTenantNotFound(TenantNotFoundException e) {
-        return buildError(HttpStatus.NOT_FOUND, e.getMessage());
+    @ExceptionHandler(IncorrectEmailOrPassword.class)
+    public ResponseEntity<Map<String, Object>> handleIncorrectEmailOrPassword(IncorrectEmailOrPassword e){
+        return buildError(HttpStatus.UNAUTHORIZED, e.getMessage());
     }
 
     @ExceptionHandler(Exception.class)
@@ -51,11 +43,10 @@ public class GlobalExceptionHandler {
 
 
     private ResponseEntity<Map<String, Object>> buildError(HttpStatus status, String message) {
-        Map<String, Object> errorMap = new HashMap<>();
-        errorMap.put("message", message);
-        errorMap.put("status", status);
-        errorMap.put("timeStamp", LocalDateTime.now().toString());
-        return new ResponseEntity<>(errorMap, status);
+        HashMap<String, Object> map = new HashMap<>();
+        map.put("message", message);
+        map.put("status", status.value());
+        map.put("timestamp", LocalDateTime.now().toString());
+        return new ResponseEntity<>(map, status);
     }
-
 }

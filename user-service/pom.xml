@@ -11,7 +11,7 @@
     <groupId>com.notifyhub</groupId>
     <artifactId>user-service</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>NotifyHub</name>
+    <name>UserService</name>
     <description/>
     <url/>
     <licenses>
