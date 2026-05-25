@@ -88,6 +88,25 @@ services:
         condition: service_started
       user-service:
         condition: service_started
+  
+  notification-service:
+    build: ./notification-service
+    container_name: notification-service
+    ports:
+    - "8084:8084"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/notification_db
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${DATABASE_PASSWORD}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      TEMPLATE_SERVICE_URL: http://template-service:8085
+    depends_on:
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_started
 
 
   
