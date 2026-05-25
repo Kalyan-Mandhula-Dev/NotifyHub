@@ -35,6 +35,7 @@ docker-compose up --build
 | auth-service | http://localhost:8081 |
 | user-service | http://localhost:8082 |
 | event-service | http://localhost:8083 |
+| notification-service | http://localhost:8084 |
 | kafka | localhost:9092 |
 
 ---
@@ -164,6 +165,53 @@ Authorization: Bearer <token>
 
 ---
 
+### Notification Service
+
+> Notification Service has no trigger endpoint. All work is driven by Kafka consumption.
+> REST endpoints are read-only — for history and stats.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/notifications/history/{tenantId} | Get delivery history for a tenant |
+| GET | /api/notifications/stats/{tenantId} | Get delivery stats for a tenant |
+
+#### Delivery History — Response
+```json
+[
+  {
+    "id": 1,
+    "eventId": 101,
+    "tenantId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+    "eventType": "order.placed",
+    "channel": "EMAIL",
+    "recipient": "rahul@gmail.com",
+    "status": "SENT",
+    "errorMessage": null,
+    "sentAt": "2026-05-17T10:30:05",
+    "createdAt": "2026-05-17T10:30:00"
+  }
+]
+```
+
+#### Delivery Stats — Response
+```json
+{
+  "tenantId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "totalSent": 120,
+  "totalFailed": 3,
+  "totalPending": 0
+}
+```
+
+#### Delivery Status Values
+| Status | Description |
+|--------|-------------|
+| PENDING | Message consumed from Kafka, processing started |
+| SENT | Email or webhook delivered successfully |
+| FAILED | Delivery failed — errorMessage populated |
+
+---
+
 ## Service Communication
 
 ```
@@ -185,12 +233,19 @@ POST /api/events/trigger
         ↓
    returns 202 Accepted immediately
         ↓ (async)
-   notification-service (coming next)
+   notification-service
    consumes from Kafka topic
+        ↓
+   fetches template from template-service (falls back to default if unavailable)
+        ↓
+   sends email via Gmail SMTP  OR  calls webhook URL
+        ↓
+   saves delivery log to notification_db (SENT or FAILED)
 ```
 
 auth-service and event-service call user-service directly via HTTP for tenant validation.
-All notification processing is asynchronous via Kafka — event-service does not wait for the notification to be delivered.
+All notification processing is asynchronous via Kafka — event-service does not wait for delivery.
+notification-service uses manual Kafka acknowledgement — messages are only marked done after successful delivery.
 
 ---
 
@@ -213,6 +268,24 @@ This ensures events are never silently dropped even if Kafka is temporarily unav
 
 ---
 
+## Manual Kafka Acknowledgement
+
+notification-service uses manual acknowledgement to guarantee no notifications are silently lost.
+
+```
+Message received from Kafka
+      ↓
+Save PENDING delivery log
+      ↓
+Process notification (send email / call webhook)
+      ↓ success              ↓ failure
+Mark SENT               Mark FAILED
+acknowledge to Kafka    do NOT acknowledge
+                        Kafka redelivers the message
+```
+
+---
+
 ## Database
 
 Each service owns its own database. No shared tables.
@@ -222,6 +295,7 @@ Each service owns its own database. No shared tables.
 | auth-service | auth_db |
 | user-service | user_db |
 | event-service | event_db |
+| notification-service | notification_db |
 
 ---
 
@@ -230,7 +304,7 @@ Each service owns its own database. No shared tables.
 - [x] user-service
 - [x] auth-service
 - [x] event-service
-- [ ] notification-service
+- [x] notification-service
 - [ ] template-service
 - [ ] React frontend
 - [ ] AWS deployment
