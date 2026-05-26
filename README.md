@@ -24,6 +24,7 @@ A multi-tenant event-driven notification platform built with microservices.
 - Docker Desktop installed
 - Java 17
 - Maven
+- AWS account with S3 bucket and IAM credentials
 
 ### Start all services
 ```bash
@@ -36,6 +37,7 @@ docker-compose up --build
 | user-service | http://localhost:8082 |
 | event-service | http://localhost:8083 |
 | notification-service | http://localhost:8084 |
+| template-service | http://localhost:8085 |
 | kafka | localhost:9092 |
 
 ---
@@ -212,6 +214,71 @@ Authorization: Bearer <token>
 
 ---
 
+### Template Service
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | /api/templates | Upload a template file (multipart/form-data) |
+| GET | /api/templates/resolve | Get template content by tenantId and eventType |
+| GET | /api/templates/tenant/{tenantId} | List all templates for a tenant |
+| DELETE | /api/templates/{templateId} | Delete a template |
+
+#### Upload Template — Request (multipart/form-data)
+```
+tenantId      → text  → f47ac10b-58cc-4372-a567-0e02b2c3d479
+eventType     → text  → order.placed
+templateName  → text  → order-confirmation
+file          → file  → order-confirmation.html
+```
+
+#### Upload Template — Response
+```json
+{
+  "id": 1,
+  "tenantId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "eventType": "order.placed",
+  "templateName": "order-confirmation",
+  "s3Key": "f47ac10b-58cc-4372-a567-0e02b2c3d479/order.placed/order-confirmation.html",
+  "isActive": true,
+  "createdAt": "2026-05-17T10:30:00"
+}
+```
+
+#### Resolve Template — Request
+```
+GET /api/templates/resolve?tenantId={tenantId}&eventType=order.placed
+```
+
+#### Resolve Template — Response
+```json
+{
+  "tenantId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "eventType": "order.placed",
+  "content": "<!DOCTYPE html><html>...</html>"
+}
+```
+
+#### Sample Template File (order-confirmation.html)
+```html
+<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; padding: 20px;">
+  <h2>Order Confirmation</h2>
+  <p>Thank you for your order!</p>
+  <table border="1" cellpadding="10">
+    <tr><td><b>Order ID</b></td><td>{{orderId}}</td></tr>
+    <tr><td><b>Restaurant</b></td><td>{{restaurantName}}</td></tr>
+    <tr><td><b>Amount</b></td><td>₹{{amount}}</td></tr>
+  </table>
+  <p>Your order is being prepared.</p>
+</body>
+</html>
+```
+
+Template placeholders use `{{key}}` syntax. Keys must match the payload fields sent in the event trigger request.
+
+---
+
 ## Service Communication
 
 ```
@@ -221,6 +288,13 @@ POST /api/auth/register
    saves to auth_db                  saves to user_db
         ↓
    returns JWT token
+
+
+POST /api/templates (multipart)
+        ↓
+   template-service
+   uploads file ──────────────────▶  AWS S3 (notifyhub-templates bucket)
+   saves metadata ─────────────────▶ template_db
 
 
 POST /api/events/trigger
@@ -236,16 +310,18 @@ POST /api/events/trigger
    notification-service
    consumes from Kafka topic
         ↓
-   fetches template from template-service (falls back to default if unavailable)
+   calls template-service: GET /api/templates/resolve
+        ↓
+   template-service fetches HTML from AWS S3
+        ↓
+   notification-service populates {{placeholders}} with payload values
         ↓
    sends email via Gmail SMTP  OR  calls webhook URL
         ↓
    saves delivery log to notification_db (SENT or FAILED)
 ```
 
-auth-service and event-service call user-service directly via HTTP for tenant validation.
-All notification processing is asynchronous via Kafka — event-service does not wait for delivery.
-notification-service uses manual Kafka acknowledgement — messages are only marked done after successful delivery.
+If no template is found, notification-service falls back to a plain HTML table built from the event payload — ensuring delivery never fails due to a missing template.
 
 ---
 
@@ -286,6 +362,37 @@ acknowledge to Kafka    do NOT acknowledge
 
 ---
 
+## AWS Setup
+
+### S3 Bucket
+- Bucket name: `notifyhub-templates`
+- Region: `ap-south-1` (Mumbai)
+- Access: Private — application only
+
+### IAM Policy (least-privilege)
+template-service IAM user is granted only the permissions it needs:
+```json
+{
+  "Effect": "Allow",
+  "Action": ["s3:PutObject", "s3:GetObject", "s3:DeleteObject", "s3:ListBucket"],
+  "Resource": [
+    "arn:aws:s3:::notifyhub-templates",
+    "arn:aws:s3:::notifyhub-templates/*"
+  ]
+}
+```
+
+### S3 Key Structure
+Files are stored with a structured path inside the bucket:
+```
+{tenantId}/{eventType}/{templateName}.html
+
+Example:
+f47ac10b-58cc-4372-a567-0e02b2c3d479/order.placed/order-confirmation.html
+```
+
+---
+
 ## Database
 
 Each service owns its own database. No shared tables.
@@ -296,6 +403,7 @@ Each service owns its own database. No shared tables.
 | user-service | user_db |
 | event-service | event_db |
 | notification-service | notification_db |
+| template-service | template_db |
 
 ---
 
@@ -305,6 +413,6 @@ Each service owns its own database. No shared tables.
 - [x] auth-service
 - [x] event-service
 - [x] notification-service
-- [ ] template-service
+- [x] template-service
 - [ ] React frontend
 - [ ] AWS deployment
