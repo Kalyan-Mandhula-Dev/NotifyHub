@@ -54,12 +54,19 @@ public class SubscriptionService {
                 .collect(Collectors.toList());
     }
 
+    public boolean hasActiveSubscription(String tenantId, Subscription.ChannelType channel) {
+        return subscriptionRepository
+                .findByTenantIdAndChannelAndIsActive(tenantId, channel, true)
+                .isPresent();
+    }
+
     public void deleteSubscription(Long subscriptionId) {
         subscriptionRepository.deleteById(subscriptionId);
     }
 
     private SubscriptionResponse mapToResponse(Subscription subs) {
         SubscriptionResponse subsRes = SubscriptionResponse.builder()
+                .id(subs.getId())
                 .tenantId(subs.getTenantId())
                 .channel(subs.getChannel())
                 .isActive(subs.isActive())

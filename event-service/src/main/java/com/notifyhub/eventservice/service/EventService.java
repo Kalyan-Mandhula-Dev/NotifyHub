@@ -8,6 +8,7 @@ import com.notifyhub.eventservice.entity.ChannelType;
 import com.notifyhub.eventservice.entity.Event;
 import com.notifyhub.eventservice.entity.EventOutbox;
 import com.notifyhub.eventservice.entity.EventStatus;
+import com.notifyhub.eventservice.exception.SubscriptionNotFoundException;
 import com.notifyhub.eventservice.exception.TenantNotFoundException;
 import com.notifyhub.eventservice.kafka.KafkaProducer;
 import com.notifyhub.eventservice.repository.EventOutboxRepository;
@@ -44,6 +45,15 @@ public class EventService {
         if (!userClientService.tenantExists(eventRequest.getTenantId())) {
             throw new TenantNotFoundException(
                     "Tenant not found: " + eventRequest.getTenantId()
+            );
+        }
+
+        if (!userClientService.hasActiveSubscription(
+                eventRequest.getTenantId(),
+                eventRequest.getChannel().name())) {
+            throw new SubscriptionNotFoundException(
+                    "Tenant " + eventRequest.getTenantId() +
+                            " has no active subscription for channel: " + eventRequest.getChannel()
             );
         }
 

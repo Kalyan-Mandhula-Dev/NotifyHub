@@ -7,6 +7,8 @@ package com.notifyhub.userservice.repository;
 
 import com.notifyhub.userservice.entity.Subscription;
 import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
@@ -16,5 +18,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface SubscriptionRepository extends JpaRepository<Subscription, Long> {
 
     List<Subscription> findByTenantId(String tenantId);
+
+    Optional<Subscription> findByTenantIdAndChannelAndIsActive(
+            String tenantId, Subscription.ChannelType channel, Boolean isActive
+    );
 
 }

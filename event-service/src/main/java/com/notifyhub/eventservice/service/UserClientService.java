@@ -38,6 +38,28 @@ public class UserClientService {
         }
     }
 
+    public boolean hasActiveSubscription(String tenantId, String channel) {
+        try {
+            SubscriptionCheckResponse response = webClient.get()
+                    .uri("/api/users/subscriptions/check?tenantId={tenantId}&channel={channel}",
+                            tenantId, channel)
+                    .retrieve()
+                    .bodyToMono(SubscriptionCheckResponse.class)
+                    .block();
+
+            return response != null && response.isSubscribed();
+
+        } catch (Exception e) {
+            log.error("Error checking subscription: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    @Data
+    private static class SubscriptionCheckResponse {
+        private boolean subscribed;
+    }
+
     @Data
     public static class TenantResponse {
         private String id;

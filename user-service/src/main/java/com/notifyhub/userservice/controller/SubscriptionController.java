@@ -7,19 +7,18 @@ package com.notifyhub.userservice.controller;
 
 import com.notifyhub.userservice.dto.request.CreateSubscriptionRequest;
 import com.notifyhub.userservice.dto.response.SubscriptionResponse;
+import com.notifyhub.userservice.entity.Subscription;
 import com.notifyhub.userservice.service.SubscriptionService;
 import jakarta.validation.Valid;
+
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  *
@@ -44,6 +43,18 @@ public class SubscriptionController {
         List<SubscriptionResponse> responses
                 = subscriptionService.getSubscriptionsByTenant(tenantId);
         return ResponseEntity.ok(responses);
+    }
+
+    @GetMapping("/check")
+    public ResponseEntity<Map<String, Boolean>> checkSubscription(
+            @RequestParam String tenantId,
+            @RequestParam Subscription.ChannelType channel) {
+
+        boolean active = subscriptionService.hasActiveSubscription(tenantId, channel);
+
+        Map<String, Boolean> response = new HashMap<>();
+        response.put("subscribed", active);
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{subscriptionId}")

@@ -17,7 +17,7 @@ import lombok.Data;
 @Data
 @Builder
 public class SubscriptionResponse {
-
+    private Long id;
     private String tenantId;
     private ChannelType channel;
     private boolean isActive;

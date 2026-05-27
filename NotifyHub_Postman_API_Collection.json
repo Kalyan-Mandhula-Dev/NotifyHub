@@ -1,0 +1,359 @@
+{
+  "info": {
+    "name": "NotifyHub",
+    "description": "NotifyHub API Collection — replace tenant IDs and emails with real values after registering.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Auth Service (port 8081)",
+      "item": [
+        {
+          "name": "Register Tenant",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyName\": \"Swiggy\",\n  \"email\": \"tech@swiggy.com\",\n  \"password\": \"Swiggy@123\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8081/api/auth/register",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8081",
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"tech@swiggy.com\",\n  \"password\": \"Swiggy@123\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8081/api/auth/login",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8081",
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Validate Token",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer PASTE_TOKEN_HERE" }],
+            "url": {
+              "raw": "http://localhost:8081/api/auth/validate",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8081",
+              "path": ["api", "auth", "validate"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. User Service (port 8082)",
+      "item": [
+        {
+          "name": "Get Tenant by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8082/api/users/tenants/PASTE_TENANT_ID_HERE",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8082",
+              "path": ["api", "users", "tenants", "PASTE_TENANT_ID_HERE"]
+            }
+          }
+        },
+        {
+          "name": "Update Tenant",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyName\": \"Swiggy India\",\n  \"email\": \"tech@swiggy.com\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8082/api/users/tenants/PASTE_TENANT_ID_HERE",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8082",
+              "path": ["api", "users", "tenants", "PASTE_TENANT_ID_HERE"]
+            }
+          }
+        },
+        {
+          "name": "Deactivate Tenant",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8082/api/users/tenants/PASTE_TENANT_ID_HERE",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8082",
+              "path": ["api", "users", "tenants", "PASTE_TENANT_ID_HERE"]
+            }
+          }
+        },
+        {
+          "name": "Add Email Subscription",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenantId\": \"PASTE_TENANT_ID_HERE\",\n  \"channel\": \"EMAIL\",\n  \"destination\": \"notifications@swiggy.com\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8082/api/users/subscriptions",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8082",
+              "path": ["api", "users", "subscriptions"]
+            }
+          }
+        },
+        {
+          "name": "Add Webhook Subscription",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenantId\": \"PASTE_TENANT_ID_HERE\",\n  \"channel\": \"WEBHOOK\",\n  \"destination\": \"https://webhook.site/your-test-url\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8082/api/users/subscriptions",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8082",
+              "path": ["api", "users", "subscriptions"]
+            }
+          }
+        },
+        {
+          "name": "Get Subscriptions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8082/api/users/subscriptions/PASTE_TENANT_ID_HERE",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8082",
+              "path": ["api", "users", "subscriptions", "PASTE_TENANT_ID_HERE"]
+            }
+          }
+        },
+        {
+          "name": "Delete Subscription",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8082/api/users/subscriptions/PASTE_SUBSCRIPTION_ID_HERE",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8082",
+              "path": ["api", "users", "subscriptions", "PASTE_SUBSCRIPTION_ID_HERE"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Event Service (port 8083)",
+      "item": [
+        {
+          "name": "Trigger Email Event - Order Placed",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenantId\": \"PASTE_TENANT_ID_HERE\",\n  \"eventType\": \"order.placed\",\n  \"channel\": \"EMAIL\",\n  \"recipient\": \"PASTE_YOUR_REAL_EMAIL_HERE\",\n  \"payload\": {\n    \"orderId\": \"SWG123\",\n    \"restaurantName\": \"Biryani House\",\n    \"amount\": 349\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8083/api/events/trigger",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8083",
+              "path": ["api", "events", "trigger"]
+            }
+          }
+        },
+        {
+          "name": "Trigger Email Event - Payment Failed",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenantId\": \"PASTE_TENANT_ID_HERE\",\n  \"eventType\": \"payment.failed\",\n  \"channel\": \"EMAIL\",\n  \"recipient\": \"PASTE_YOUR_REAL_EMAIL_HERE\",\n  \"payload\": {\n    \"orderId\": \"SWG456\",\n    \"amount\": 299,\n    \"reason\": \"Insufficient funds\"\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8083/api/events/trigger",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8083",
+              "path": ["api", "events", "trigger"]
+            }
+          }
+        },
+        {
+          "name": "Trigger Webhook Event",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenantId\": \"PASTE_TENANT_ID_HERE\",\n  \"eventType\": \"order.delivered\",\n  \"channel\": \"WEBHOOK\",\n  \"recipient\": \"https://webhook.site/your-test-url\",\n  \"payload\": {\n    \"orderId\": \"SWG789\",\n    \"deliveredAt\": \"2026-05-17T10:30:00\",\n    \"deliveryAgent\": \"Ravi\"\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8083/api/events/trigger",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8083",
+              "path": ["api", "events", "trigger"]
+            }
+          }
+        },
+        {
+          "name": "Get Events by Tenant",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8083/api/events/PASTE_TENANT_ID_HERE",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8083",
+              "path": ["api", "events", "PASTE_TENANT_ID_HERE"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Notification Service (port 8084)",
+      "item": [
+        {
+          "name": "Get Delivery History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8084/api/notifications/history/PASTE_TENANT_ID_HERE",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8084",
+              "path": ["api", "notifications", "history", "PASTE_TENANT_ID_HERE"]
+            }
+          }
+        },
+        {
+          "name": "Get Delivery Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8084/api/notifications/stats/PASTE_TENANT_ID_HERE",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8084",
+              "path": ["api", "notifications", "stats", "PASTE_TENANT_ID_HERE"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Template Service (port 8085)",
+      "item": [
+        {
+          "name": "Upload Template",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "tenantId", "value": "PASTE_TENANT_ID_HERE", "type": "text" },
+                { "key": "eventType", "value": "order.placed", "type": "text" },
+                { "key": "templateName", "value": "order-confirmation", "type": "text" },
+                { "key": "file", "type": "file", "src": [], "description": "Select your order-confirmation.html file" }
+              ]
+            },
+            "url": {
+              "raw": "http://localhost:8085/api/templates",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8085",
+              "path": ["api", "templates"]
+            }
+          }
+        },
+        {
+          "name": "Resolve Template",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8085/api/templates/resolve?tenantId=PASTE_TENANT_ID_HERE&eventType=order.placed",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8085",
+              "path": ["api", "templates", "resolve"],
+              "query": [
+                { "key": "tenantId", "value": "PASTE_TENANT_ID_HERE" },
+                { "key": "eventType", "value": "order.placed" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get All Templates for Tenant",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8085/api/templates/tenant/PASTE_TENANT_ID_HERE",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8085",
+              "path": ["api", "templates", "tenant", "PASTE_TENANT_ID_HERE"]
+            }
+          }
+        },
+        {
+          "name": "Delete Template",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8085/api/templates/PASTE_TEMPLATE_ID_HERE",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8085",
+              "path": ["api", "templates", "PASTE_TEMPLATE_ID_HERE"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
