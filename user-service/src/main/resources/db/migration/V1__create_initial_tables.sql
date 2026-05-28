@@ -29,15 +29,3 @@ CREATE TABLE subscriptions (
     CONSTRAINT fk_subscriptions_tenant FOREIGN KEY (tenant_id)
         REFERENCES tenants(id)
 );
-
-CREATE TABLE api_keys (
-    id          BIGINT          NOT NULL AUTO_INCREMENT,
-    tenant_id   VARCHAR(36)     NOT NULL,
-    api_key     VARCHAR(64)     NOT NULL,
-    is_active   BOOLEAN         NOT NULL DEFAULT TRUE,
-    created_at  DATETIME        NOT NULL,
-    CONSTRAINT pk_api_keys PRIMARY KEY (id),
-    CONSTRAINT uq_api_keys_key UNIQUE (api_key),
-    CONSTRAINT fk_api_keys_tenant FOREIGN KEY (tenant_id)
-        REFERENCES tenants(id)
-);
