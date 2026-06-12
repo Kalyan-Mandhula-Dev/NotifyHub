@@ -10,6 +10,7 @@ import com.notifyhub.templateservice.repository.TemplateRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -23,6 +24,7 @@ public class TemplateService {
     private final TemplateRepository templateRepository;
     private final S3Service s3Service;
 
+    @Transactional
     public TemplateResponse uploadTemplate(UploadTemplateRequest request, MultipartFile file) {
 
         if (templateRepository.existsByTenantIdAndEventType(
@@ -82,6 +84,7 @@ public class TemplateService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
     public void deleteTemplate(Long templateId) {
         Template template = templateRepository.findById(templateId)
                 .orElseThrow(() -> new TemplateNotFoundException(

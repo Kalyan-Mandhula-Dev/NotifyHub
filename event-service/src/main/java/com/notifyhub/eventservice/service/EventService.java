@@ -18,6 +18,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -41,6 +43,7 @@ public class EventService {
     @Value("${kafka.topic.webhook}")
     private String webhookTopic;
 
+    @Transactional
     public EventResponse triggerEvent(TriggerEventRequest eventRequest) {
         if (!userClientService.tenantExists(eventRequest.getTenantId())) {
             throw new TenantNotFoundException(
@@ -86,7 +89,8 @@ public class EventService {
         return mapToResponse(savedEvent);
     }
 
-    private void publishToKafka(Event event, EventOutbox eventOutbox, String topic) {
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void publishToKafka(Event event, EventOutbox eventOutbox, String topic) {
 
         try {
             KafkaEventMessage message = KafkaEventMessage.builder()
@@ -120,6 +124,7 @@ public class EventService {
         }
     }
 
+    @Transactional
     @Scheduled(fixedDelay = 3000)
     public void retryUnpublisedEvents() {
         List<EventOutbox> unPublishedEvents = eventOutboxRepository.findByPublished(false);

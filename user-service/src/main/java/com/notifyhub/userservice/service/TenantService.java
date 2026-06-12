@@ -13,6 +13,7 @@ import com.notifyhub.userservice.exception.TenantNotFoundException;
 import com.notifyhub.userservice.repository.TenantRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  *
@@ -24,6 +25,7 @@ public class TenantService {
 
     private final TenantRepository tenantRepository;
 
+    @Transactional
     public TenantResponse createTenant(CreateTenantRequest requestTenant) {
         if (tenantRepository.existsByEmail(requestTenant.getEmail())) {
             throw new TenantAlreadyExistsException("Tenant with email " + requestTenant.getEmail() + " already exists");
@@ -46,6 +48,7 @@ public class TenantService {
         return mapToResponse(tenant);
     }
 
+    @Transactional
     public TenantResponse updateTenant(String tenantId, CreateTenantRequest request) {
         Tenant tenant = tenantRepository.findById(tenantId)
                 .orElseThrow(() -> new TenantNotFoundException(
@@ -58,7 +61,8 @@ public class TenantService {
         Tenant updated = tenantRepository.save(tenant);
         return mapToResponse(updated);
     }
-    
+
+    @Transactional
     public void deactivateTenant(String tenantId) {
         Tenant tenant = tenantRepository.findById(tenantId)
                 .orElseThrow(() -> new TenantNotFoundException(

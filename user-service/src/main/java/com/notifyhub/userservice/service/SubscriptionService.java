@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  *
@@ -27,6 +28,7 @@ public class SubscriptionService {
     private final SubscriptionRepository subscriptionRepository;
     private final TenantRepository tenantRepository;
 
+    @Transactional
     public SubscriptionResponse createSubscripton(CreateSubscriptionRequest subscriptionRequest) {
         if (!tenantRepository.existsById(subscriptionRequest.getTenantId())) {
             throw new TenantNotFoundException("Tenant with id " + subscriptionRequest.getTenantId() + " is not found.");
@@ -60,6 +62,7 @@ public class SubscriptionService {
                 .isPresent();
     }
 
+    @Transactional
     public void deleteSubscription(Long subscriptionId) {
         subscriptionRepository.deleteById(subscriptionId);
     }

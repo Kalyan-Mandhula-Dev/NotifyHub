@@ -10,6 +10,8 @@ import com.notifyhub.notificationservice.entity.ChannelType;
 import com.notifyhub.notificationservice.entity.DeliveryLog;
 import com.notifyhub.notificationservice.entity.DeliveryStatus;
 import com.notifyhub.notificationservice.repository.DeliveryLogRepository;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -25,6 +27,7 @@ public class NotificationService {
     private final TemplateServiceClient templateServiceClient;
     private final TemplateEngine templateEngine;
 
+    @Transactional
     public void processNotification(KafkaEventMessage message) {
 
         DeliveryLog deliveryLog = new DeliveryLog();

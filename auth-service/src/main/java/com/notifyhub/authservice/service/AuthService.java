@@ -12,6 +12,7 @@ import com.notifyhub.authservice.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +23,7 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
 
+    @Transactional
     public AuthCredentialResponse registerTenant(CreateAuthCredentialRequest registerRequest) {
         if (authRepository.existsByEmail(registerRequest.getEmail())) {
             throw new EmailAlreadyExistsException("Tenant with email " + registerRequest.getEmail() + " already Exists");
