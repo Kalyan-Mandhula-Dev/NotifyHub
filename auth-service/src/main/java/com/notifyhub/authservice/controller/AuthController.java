@@ -32,7 +32,7 @@ public class AuthController {
 
     @GetMapping("/validate")
     public ResponseEntity<TokenValidationResponse> isTokenValid(@RequestHeader("Authorization") String authHeader){
-        String token = authHeader.replace("Bearer", "");
+        String token = authHeader.replace("Bearer ", "");
         TokenValidationResponse validationResponse = authService.validateToken(token);
         return new ResponseEntity<>(validationResponse, HttpStatus.OK);
     }

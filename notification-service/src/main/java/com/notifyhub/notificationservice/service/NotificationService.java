@@ -70,19 +70,11 @@ public class NotificationService {
     private void processEmail(KafkaEventMessage message) throws Exception {
         String template = templateServiceClient.fetchTemplate(
                 message.getTenantId(),
-                message.getEventType()
-        );
+                message.getEventType(),
+                message.getPayload()
+        ).get();
 
-        String htmlContent;
-        if (template != null) {
-            htmlContent = templateEngine.populate(template, message.getPayload());
-        } else {
-            htmlContent = templateEngine.buildFallbackTemplate(
-                    message.getEventType(),
-                    message.getPayload()
-            );
-        }
-
+        String htmlContent = templateEngine.populate(template, message.getPayload());
         String subject = formatSubject(message.getEventType());
         emailService.sendEmail(message.getRecipient(), subject, htmlContent);
     }

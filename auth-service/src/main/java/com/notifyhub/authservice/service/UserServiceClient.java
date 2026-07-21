@@ -14,8 +14,11 @@ public class UserServiceClient {
 
     private WebClient webClient;
 
-    public UserServiceClient(@Value("${user.service.url}") String userServiceUrl) {
-        this.webClient = WebClient.builder().baseUrl(userServiceUrl).build();
+    public UserServiceClient(WebClient.Builder loadBalancedWebClientBuilder) {
+        this.webClient = loadBalancedWebClientBuilder
+                .baseUrl("http://user-service")
+                .build();
+
     }
 
     public String createTeant(String companyName, String email) {

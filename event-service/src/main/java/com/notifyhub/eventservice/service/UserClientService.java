@@ -16,8 +16,10 @@ public class UserClientService {
 
     private final WebClient webClient;
 
-    public UserClientService(@Value("${user.service.url}") String userServiceUrl) {
-        this.webClient = WebClient.builder().baseUrl(userServiceUrl).build();
+    public UserClientService(WebClient.Builder loadBalancedWebClientBuilder) {
+        this.webClient = loadBalancedWebClientBuilder
+                .baseUrl("http://user-service")
+                .build();
     }
 
     public boolean tenantExists(String tenantId) {

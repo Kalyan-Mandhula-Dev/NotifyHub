@@ -19,7 +19,13 @@ public class EventController {
     private final EventService eventService;
 
     @PostMapping("/trigger")
-    public ResponseEntity<EventResponse> triggerEvent(@Valid @RequestBody TriggerEventRequest eventRequest){
+    public ResponseEntity<EventResponse> triggerEvent(@Valid @RequestBody TriggerEventRequest eventRequest,
+                                                      @RequestHeader(value = "X-Tenant-Id", required = false) String tenantIdFromGateway){
+
+        if(tenantIdFromGateway != null){
+            eventRequest.setTenantId(tenantIdFromGateway);
+        }
+
         EventResponse eventResponse = eventService.triggerEvent(eventRequest);
         return new ResponseEntity<>(eventResponse, HttpStatus.CREATED);
     }

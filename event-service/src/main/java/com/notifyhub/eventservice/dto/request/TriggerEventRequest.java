@@ -8,7 +8,6 @@ import java.util.Map;
 
 public class TriggerEventRequest {
 
-    @NotBlank(message = "Tenant ID is required")
     private String tenantId;
 
     @NotBlank(message = "Event type is required")

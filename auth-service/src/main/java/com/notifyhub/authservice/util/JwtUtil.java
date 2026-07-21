@@ -2,6 +2,7 @@ package com.notifyhub.authservice.util;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -10,6 +11,7 @@ import java.util.Date;
 import java.util.HashMap;
 
 @Component
+@Slf4j
 public class JwtUtil {
 
     @Value("${jwt.secret}")
@@ -23,6 +25,7 @@ public class JwtUtil {
     }
 
     public String generateToken(String email, String tenantId) {
+        log.info("Secret Key : {}", secretKeyString);
         HashMap<String, Object> claims = new HashMap<>();
         claims.put("tenantId", tenantId);
         return Jwts.builder()
