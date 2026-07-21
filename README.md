@@ -5,6 +5,8 @@ A multi-tenant notification platform built with microservices. Companies (tenant
 ## Tech Stack
 
 - Java 17, Spring Boot 3
+- Spring Cloud Gateway (MVC), Netflix Eureka, Spring Cloud LoadBalancer
+- Resilience4j (Circuit Breaker, Retry, Time Limiter)
 - Apache Kafka
 - MySQL
 - Docker, Docker Compose
@@ -13,15 +15,38 @@ A multi-tenant notification platform built with microservices. Companies (tenant
 
 ## Architecture
 
-5 Spring Boot microservices, each with its own MySQL database, communicating via REST and Kafka.
+7 Spring Boot services: 5 business microservices with their own MySQL databases, an API Gateway as the single public entry point, and a Eureka discovery server. Services register with Eureka on startup and are resolved by name rather than fixed host:port.
 
 | Service | Responsibility |
 |---------|---------------|
+| api-gateway | Single entry point, JWT validation, request routing |
+| discovery-server | Eureka service registry |
 | auth-service | Tenant registration, login, JWT issuance |
 | user-service | Tenant profiles, subscriptions |
 | event-service | Receives trigger requests, publishes to Kafka |
 | notification-service | Consumes Kafka events, sends email or webhook |
 | template-service | Stores and retrieves HTML templates via AWS S3 |
+
+```mermaid
+flowchart TB
+    Client["Client / tenant"] --> Gateway["API gateway<br/>JWT auth, routing"]
+    Gateway --> Auth["Auth & user service<br/>Login, tenant profiles"]
+    Gateway --> Event["Event service<br/>Validates & publishes"]
+    Event --> Kafka[("Kafka<br/>Event streaming")]
+    Kafka --> Notif["Notification service<br/>Consumes & delivers"]
+    Notif --> Template["Template service<br/>Fetches templates"]
+    Template --> S3[("AWS S3<br/>Template storage")]
+```
+
+## Authentication
+
+All endpoints except `/api/auth/register` and `/api/auth/login` require a JWT token, validated at the Gateway before any request reaches a downstream service.
+
+```
+Authorization: Bearer <token from /api/auth/login>
+```
+
+The Gateway extracts the tenant identity from the verified token and forwards it downstream as an `X-Tenant-Id` header — services trust this header, not any tenant ID supplied directly by the client.
 
 ## Running Locally
 
@@ -44,10 +69,13 @@ AWS_REGION=ap-south-1
 AWS_ACCESS_KEY=your-access-key
 AWS_SECRET_KEY=your-secret-key
 AWS_S3_BUCKET=notifyhub-templates
+EUREKA_SERVER_URL=http://discovery-server:8761/eureka/
 ```
 
 3. Build all services to create .jar files
 ```bash
+cd api-gateway && mvn clean package -DskipTests && cd ..
+cd discovery-server && mvn clean package -DskipTests && cd ..
 cd auth-service && mvn clean package -DskipTests && cd ..
 cd user-service && mvn clean package -DskipTests && cd ..
 cd event-service && mvn clean package -DskipTests && cd ..
@@ -60,31 +88,36 @@ cd template-service && mvn clean package -DskipTests && cd ..
 docker compose up --build
 ```
 
-All services, MySQL, Kafka, and Zookeeper start with a single command.
+All services, Eureka, MySQL, Kafka, and Zookeeper start with a single command.
 
 ### Service Ports
 
-| Service | URL |
-|---------|-----|
-| auth-service | http://localhost:8081 |
-| user-service | http://localhost:8082 |
-| event-service | http://localhost:8083 |
-| notification-service | http://localhost:8084 |
-| template-service | http://localhost:8085 |
-| Kafka | localhost:9092 |
+| Service | URL | Publicly Accessible |
+|---------|-----|----------------------|
+| api-gateway | http://localhost:8080 | Yes — only public entry point |
+| discovery-server | http://localhost:8761 | Local/dev only |
+| auth-service | internal only (8081) | No |
+| user-service | internal only (8082) | No |
+| event-service | internal only (8083) | No |
+| notification-service | internal only (8084) | No |
+| template-service | internal only (8085) | No |
+| Kafka | localhost:9092 | No |
+
+All API requests go through `http://localhost:8080` (or `http://<ec2-ip>:8080` in deployment). Individual services are not reachable directly.
 
 ---
 
 ## API Reference
 
+All requests below go through the Gateway at port 8080. Every endpoint except register/login requires the `Authorization: Bearer <token>` header.
+
 ### Auth Service
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | /api/auth/register | Register new tenant |
-| POST | /api/auth/login | Login and get JWT token |
+| POST | /api/auth/register | Register new tenant (no auth required) |
+| POST | /api/auth/login | Login and get JWT token (no auth required) |
 | GET | /api/auth/validate | Validate JWT token |
-
 
 **Register**
 
@@ -140,8 +173,8 @@ Authorization: Bearer <token>
 **Trigger Event**
 ```json
 POST /api/events/trigger
+Authorization: Bearer <token>
 {
-  "tenantId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
   "eventType": "order.placed",
   "channel": "EMAIL",
   "recipient": "kalyan@gmail.com",
@@ -152,6 +185,7 @@ POST /api/events/trigger
   }
 }
 ```
+`tenantId` is no longer sent in the body — the Gateway injects it from the verified token as `X-Tenant-Id`.
 
 Returns `202 Accepted` immediately. Notification is processed asynchronously via Kafka.
 
@@ -225,7 +259,7 @@ file          → order-confirmation.html  (file type)
 GET /api/templates/resolve?tenantId={tenantId}&eventType=order.placed
 ```
 
-Returns the full HTML content of the template fetched from AWS-S3.
+Returns the full HTML content of the template fetched from AWS S3.
 
 **Sample template file**
 ```html
@@ -241,7 +275,7 @@ Returns the full HTML content of the template fetched from AWS-S3.
 
 `{{key}}` placeholders are replaced with values from the event payload before sending.
 
-If no template is found, notification-service falls back to a plain HTML table — delivery never fails because of a missing template.
+If template-service is unreachable or no template is found, notification-service falls back to a plain HTML table — delivery never fails because of a missing or unavailable template.
 
 ---
 
@@ -250,15 +284,16 @@ If no template is found, notification-service falls back to a plain HTML table �
 ```
 1. Example tenant: Swiggy
 
-2. Swiggy registers → auth-service creates credentials,
-   calls user-service to create tenant profile
+2. Swiggy registers → api-gateway (open route, no token needed) →
+   auth-service creates credentials, calls user-service to create tenant profile
 
 3. Swiggy subscribes to an event EMAIL -> user-service
 
 4. Swiggy uploads an HTML template → template-service
    stores file in AWS S3, saves metadata in template_db
 
-5. Swiggy triggers an event (order.placed) → event-service
+5. Swiggy triggers an event (order.placed) → api-gateway validates JWT,
+   injects tenantId as a header, forwards to event-service →
    validates the tenant and subscriptions, saves to event_db,
    publishes to Kafka topic → returns 202 immediately
 
@@ -271,6 +306,18 @@ If no template is found, notification-service falls back to a plain HTML table �
 ---
 
 ## Key Design Decisions
+
+**API Gateway + Centralized Auth**
+
+A Spring Cloud Gateway (MVC-based) is the single public entry point for all 5 services. It validates JWTs once, in one place, instead of duplicating auth logic across services, and injects the verified tenant identity downstream as a trusted header — so a tenant can never spoof another tenant's ID by editing a request body.
+
+**Service Discovery**
+
+All services register with a Eureka server on startup and are looked up by name instead of hardcoded `host:port`. This means a service can be scaled to multiple instances, or moved to a new host, with zero configuration changes anywhere else in the system.
+
+**Fault Tolerance with Resilience4j**
+
+The `notification-service → template-service` call is wrapped with Resilience4j: 3 retry attempts (500ms apart) for transient failures, a 2-second timeout to prevent hung threads, and a circuit breaker that opens after a 50% failure rate over a 10-call window to stop hammering a dead dependency. On exhausted retries, it falls back to a plain HTML table instead of failing the notification. This same pattern is established and intended to extend to the other inter-service calls (`auth-service → user-service`, `event-service → user-service`) going forward.
 
 **Transactional Outbox Pattern**
 
@@ -309,14 +356,18 @@ Each service has its own database. No service queries another service's database
 
 ## Deployment
 
-Deployed on AWS EC2 (ap-south-1). All services run via Docker Compose on a single instance.
+Deployed on AWS EC2 (ap-south-1). All services run via Docker Compose on a single instance. Only the Gateway is publicly reachable.
 
 | Service | URL |
 |---------|-----|
-| auth-service | http://<ec2-ip>:8081 |
-| user-service | http://<ec2-ip>:8082 |
-| event-service | http://<ec2-ip>:8083 |
-| notification-service | http://<ec2-ip>:8084 |
-| template-service | http://<ec2-ip>:8085 |
+| api-gateway | http://<ec2-ip>:8080 |
+| discovery-server | internal only |
+| auth-service | internal only |
+| user-service | internal only |
+| event-service | internal only |
+| notification-service | internal only |
+| template-service | internal only |
 
-Import `NotifyHub_Postman_API_Collection.json` from the repo to test all endpoints.
+EC2 security group: only ports 8080 (API) and 22 (SSH) open inbound.
+
+Import `NotifyHub_Postman_API_Collection.json` from the repo to test all endpoints — base URL should point at the Gateway (`:8080`), not individual service ports.
