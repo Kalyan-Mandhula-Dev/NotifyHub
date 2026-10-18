@@ -1,4 +1,4 @@
-package com.notifyhub.notificationservice.dto;
+package com.notifyhub.notificationservice.dto.response;
 
 import lombok.Builder;
 import lombok.Data;

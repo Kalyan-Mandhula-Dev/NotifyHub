@@ -73,4 +73,13 @@ public class GatewayConfig {
                 .build();
     }
 
+    @Bean
+    public RouterFunction<ServerResponse> aiServiceRoutes() {
+        return route("ai-service")
+                .route(path("/api/ai/**"), http())
+                .filter(JwtAuthFilter.apply(jwtUtil))
+                .filter(lb("ai-service"))
+                .build();
+    }
+
 }
